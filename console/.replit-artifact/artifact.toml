@@ -1,0 +1,15 @@
+kind = "web"
+previewPath = "/"
+title = "SvelteKit Console"
+version = "1.0.0"
+
+[[services]]
+localPort = 5173
+name = "web"
+paths = ["/"]
+
+[services.env]
+PORT = "5173"
+
+[services.development]
+run = "cd console && PORT=5173 npm run dev"

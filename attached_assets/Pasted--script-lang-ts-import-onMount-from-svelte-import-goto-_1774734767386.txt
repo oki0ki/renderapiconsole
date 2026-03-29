@@ -1,0 +1,537 @@
+<script lang="ts">
+        import { onMount } from 'svelte';
+        import { goto } from '$app/navigation';
+        import { BarChart2, ChevronDown, Settings } from 'lucide-svelte';
+
+        let sidebarOpen = true;
+        let refNavOpen = false;
+        let activeSection = 'introduction';
+        let baseUrl = '';
+        let copied = false;
+
+        onMount(() => {
+                sidebarOpen = window.innerWidth >= 1024;
+
+                let touchstartX = 0;
+                let touchendX = 0;
+                const checkSwipe = () => {
+                        const dist = Math.abs(touchendX - touchstartX);
+                        if (dist >= window.innerWidth / 4) {
+                                sidebarOpen = touchendX > touchstartX;
+                        }
+                };
+                const onTouchStart = (e: TouchEvent) => { touchstartX = e.changedTouches[0].screenX; };
+                const onTouchEnd = (e: TouchEvent) => { touchendX = e.changedTouches[0].screenX; checkSwipe(); };
+                document.addEventListener('touchstart', onTouchStart);
+                document.addEventListener('touchend', onTouchEnd);
+
+                const host = window.location.hostname;
+                if (host === 'localhost' || host === '127.0.0.1') {
+                        baseUrl = 'http://localhost:3001/v1';
+                } else {
+                        baseUrl = 'https://' + host + '/v1';
+                }
+
+                return () => {
+                        document.removeEventListener('touchstart', onTouchStart);
+                        document.removeEventListener('touchend', onTouchEnd);
+                };
+        });
+
+        function copyBaseUrl() {
+                if (!baseUrl) return;
+                navigator.clipboard.writeText(baseUrl);
+                copied = true;
+                setTimeout(() => copied = false, 2000);
+        }
+
+        const O = '\u007B';
+        const C = '\u007D';
+
+        function esc(s: string) {
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        $: s = (function(url: string) {
+                const u = url || 'https://api.example.com/v1';
+                return {
+                        curlModels: esc(
+                                'curl ' + u + '/models \\\n' +
+                                '  -H "Authorization: Bearer sk-<your-key>"'
+                        ),
+                        curlChat: esc(
+                                'curl ' + u + '/chat/completions \\\n' +
+                                '  -H "Content-Type: application/json" \\\n' +
+                                '  -H "Authorization: Bearer sk-<your-key>" \\\n' +
+                                '  -d \'' + O + '\n' +
+                                '    "model": "DeepSeek-V3.1",\n' +
+                                '    "messages": [\n' +
+                                '      ' + O + '"role": "system", "content": "You are a helpful assistant."' + C + ',\n' +
+                                '      ' + O + '"role": "user", "content": "What is the capital of Poland?"' + C + '\n' +
+                                '    ]\n' +
+                                '  ' + C + '\''
+                        ),
+                        python: esc(
+                                'from openai import OpenAI\n\n' +
+                                'client = OpenAI(\n' +
+                                '    api_key="sk-<your-key>",\n' +
+                                '    base_url="' + u + '"\n' +
+                                ')\n\n' +
+                                'response = client.chat.completions.create(\n' +
+                                '    model="Kimi-K2",\n' +
+                                '    messages=[\n' +
+                                '        ' + O + '"role": "user", "content": "Explain quantum entanglement simply."' + C + '\n' +
+                                '    ]\n' +
+                                ')\n' +
+                                'print(response.choices[0].message.content)'
+                        ),
+                        js: esc(
+                                'import OpenAI from \'openai\';\n\n' +
+                                'const client = new OpenAI(' + O + '\n' +
+                                '  apiKey: \'sk-<your-key>\',\n' +
+                                '  baseURL: \'' + u + '\'\n' +
+                                C + ');\n\n' +
+                                'const response = await client.chat.completions.create(' + O + '\n' +
+                                '  model: \'Mistral-Small-4\',\n' +
+                                '  messages: [' + O + ' role: \'user\', content: \'Hello!\' ' + C + ']\n' +
+                                C + ');\n' +
+                                'console.log(response.choices[0].message.content);'
+                        ),
+                        streamPython: esc(
+                                'stream = client.chat.completions.create(\n' +
+                                '    model="GPT-OSS-120b",\n' +
+                                '    messages=[' + O + '"role": "user", "content": "Tell me a story"' + C + '],\n' +
+                                '    stream=True\n' +
+                                ')\n' +
+                                'for chunk in stream:\n' +
+                                '    print(chunk.choices[0].delta.content or "", end="", flush=True)'
+                        ),
+                        sseRaw: esc(
+                                'data: ' + O + '"id":"chatcmpl-...","object":"chat.completion.chunk","choices":[' + O + '"delta":' + O + '"content":"Hello"' + C + ',...' + C + ']' + C + '\n\n' +
+                                'data: ' + O + '"id":"chatcmpl-...","object":"chat.completion.chunk","choices":[' + O + '"delta":' + O + '"content":" world"' + C + ',...' + C + ']' + C + '\n\n' +
+                                'data: [DONE]'
+                        ),
+                        toolCurl: esc(
+                                'curl ' + u + '/chat/completions \\\n' +
+                                '  -H "Authorization: Bearer sk-<your-key>" \\\n' +
+                                '  -H "Content-Type: application/json" \\\n' +
+                                '  -d \'' + O + '\n' +
+                                '    "model": "DeepSeek-V3.1",\n' +
+                                '    "messages": [' + O + '"role":"user","content":"What is the weather in Warsaw?"' + C + '],\n' +
+                                '    "tools": [' + O + '\n' +
+                                '      "type": "function",\n' +
+                                '      "function": ' + O + '\n' +
+                                '        "name": "get_weather",\n' +
+                                '        "description": "Get current weather for a city",\n' +
+                                '        "x-endpoint": "https://your-service.com/api/weather",\n' +
+                                '        "parameters": ' + O + '\n' +
+                                '          "type": "object",\n' +
+                                '          "properties": ' + O + '"city": ' + O + '"type": "string"' + C + C + ',\n' +
+                                '          "required": ["city"]\n' +
+                                '        ' + C + '\n' +
+                                '      ' + C + '\n' +
+                                '    ' + C + ']\n' +
+                                '  ' + C + '\''
+                        ),
+                };
+        })(baseUrl);
+
+        const nav = [
+                { id: 'introduction',     label: 'Introduction' },
+                { id: 'authentication',   label: 'Authentication' },
+                { id: 'models',           label: 'Available models' },
+                { id: 'chat-completions', label: 'Chat Completions' },
+                { id: 'streaming',        label: 'Streaming' },
+                { id: 'tool-calls',       label: 'Tool calls' },
+                { id: 'errors',           label: 'Errors' },
+        ];
+
+        const models = [
+                { alias: 'Bielik-11b',           id: 'speakleash/bielik-11b-v2.6-instruct', note: 'Polish language model' },
+                { alias: 'Mistral-Small-4',       id: 'mistralai/mistral-small-4-119b-2603', note: 'Fast, efficient' },
+                { alias: 'DeepSeek-V3.1',         id: 'deepseek-ai/deepseek-v3.1',           note: 'Strong reasoning' },
+                { alias: 'Kimi-K2',               id: 'moonshotai/kimi-k2-instruct',         note: 'Long context' },
+                { alias: 'Kimi-K2.5',             id: 'moonshotai/kimi-k2.5',                note: 'Long context, updated' },
+                { alias: 'Amazon-Nova-2-lite-v1', id: 'nova-2-lite-v1',                      note: 'Amazon Nova, fast' },
+                { alias: 'Minimax-m2.5',          id: 'minimaxai/minimax-m2.5',              note: 'Multimodal' },
+                { alias: 'GLM-4.7',               id: 'z-ai/glm4.7',                         note: 'Multilingual' },
+                { alias: 'GPT-OSS-120b',          id: 'openai/gpt-oss-120b',                 note: 'OpenAI open-source' },
+                { alias: 'Step-3.5-Flash',        id: 'stepfun-ai/step-3.5-flash',           note: 'Ultra fast' },
+                { alias: 'Qwen-3.5',              id: 'qwen/qwen3.5-122b-a10b',              note: 'Strong at code' },
+        ];
+
+        const params = [
+                { name: 'model',       type: 'string',          req: true,  desc: 'Model alias or full model ID.' },
+                { name: 'messages',    type: 'array',           req: true,  desc: 'Array of messages: system, user, assistant, tool.' },
+                { name: 'stream',      type: 'boolean',         req: false, desc: 'Enable streaming (default: true).' },
+                { name: 'temperature', type: 'number',          req: false, desc: 'Sampling temperature, 0–2.' },
+                { name: 'max_tokens',  type: 'integer',         req: false, desc: 'Maximum tokens in the response.' },
+                { name: 'tools',       type: 'array',           req: false, desc: 'List of tool definitions (OpenAI format).' },
+                { name: 'tool_choice', type: 'string | object', req: false, desc: '"auto", "none", or specific tool.' },
+        ];
+
+        const errors = [
+                { code: '401', color: 'text-red-500',    label: 'Unauthorized', desc: 'Invalid or missing API key.' },
+                { code: '400', color: 'text-orange-500', label: 'Bad Request',  desc: 'Malformed JSON or missing required fields.' },
+                { code: '502', color: 'text-orange-500', label: 'Bad Gateway',  desc: 'Upstream model provider returned an error.' },
+                { code: '200', color: 'text-green-500',  label: 'OK',           desc: 'Successful response.' },
+        ];
+
+        function scrollTo(id: string) {
+                activeSection = id;
+                refNavOpen = false;
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+</script>
+
+<svelte:head>
+        <title>API Documentation</title>
+</svelte:head>
+
+<div class="flex h-screen w-full bg-[#f9f9f9] text-[#0f0f0f] font-sans overflow-hidden">
+
+        <!-- Mobile overlay -->
+        {#if sidebarOpen}
+        <div
+                class="fixed inset-0 z-[250] bg-black/20 lg:hidden"
+                on:click={() => sidebarOpen = false}
+                role="button"
+                tabindex="-1"
+                aria-label="Close sidebar"
+        ></div>
+        {/if}
+
+        <!-- Sidebar -->
+        <aside
+                class="fixed top-0 left-0 z-[300] h-full flex flex-col flex-shrink-0 overflow-hidden
+                       bg-[#f9f9f9] border-r border-[#e5e5e5]
+                       transition-all duration-300 ease-in-out
+                       lg:relative lg:z-auto
+                       {sidebarOpen ? 'w-[260px] translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-16'}"
+        >
+                <div class="flex flex-col h-full w-full">
+
+                        <!-- Sidebar header with toggle -->
+                        <div class="flex items-center h-[60px] px-2 flex-shrink-0">
+                                <button
+                                        on:click={() => sidebarOpen = !sidebarOpen}
+                                        class="flex items-center justify-center w-9 h-9 rounded-lg text-[#666666] hover:bg-[#e5e5e5]/60 transition-colors flex-shrink-0 ml-1"
+                                        title={sidebarOpen ? 'Schowaj panel' : 'Pokaż panel'}
+                                >
+                                        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.4541C8 5.42548 8.00155 5.39716 8.00391 5.36914C7.55522 5.37527 7.18036 5.38745 6.85449 5.41406C6.32513 5.45732 5.99243 5.53344 5.74121 5.6416L5.6377 5.69043C5.14381 5.94215 4.73058 6.32494 4.44238 6.79492L4.32715 7.00098C4.19296 7.26434 4.10023 7.61261 4.05078 8.21777C4.00041 8.83458 4 9.62723 4 10.7637V13.2363C4 14.3728 4.00039 15.1654 4.05078 15.7822C4.10023 16.3871 4.19298 16.7347 4.32715 16.998L4.44238 17.2041C4.73056 17.6741 5.14377 18.0568 5.6377 18.3086L5.74121 18.3574C5.99244 18.4656 6.32506 18.5417 6.85449 18.585C7.17941 18.6115 7.55304 18.6228 8 18.6289V5.4541ZM22 13.2363C22 14.3396 22.001 15.2273 21.9424 15.9443C21.8903 16.5821 21.7876 17.1524 21.5605 17.6816L21.4551 17.9063C20.9758 18.8468 20.211 19.6115 19.2705 20.0908C18.6783 20.3925 18.0373 20.5186 17.3086 20.5781C16.5914 20.6367 15.7032 20.6357 14.5996 20.6357H9.40039C9.27572 20.6357 9.15341 20.6339 9.03418 20.6338C9.02282 20.6342 9.01146 20.6357 9 20.6357C8.98557 20.6357 8.97131 20.6334 8.95703 20.6328C8.05556 20.632 7.31 20.6287 6.69141 20.5781C6.05356 20.526 5.48347 20.4235 4.9541 20.1963L4.73047 20.0908C3.84834 19.6413 3.12017 18.9412 2.6377 18.0801L2.54492 17.9063C2.24315 17.3139 2.11717 16.6732 2.05762 15.9443C1.99905 15.2273 2 14.3396 2 13.2363V10.7637C2 9.66008 1.99903 8.77186 2.05762 8.05469C2.11716 7.32598 2.24327 6.68595 2.54492 6.09375L2.6377 5.91895C3.12017 5.05789 3.8484 4.35763 4.73047 3.9082L4.9541 3.80274C5.48344 3.57561 6.05359 3.47301 6.69141 3.4209C7.40857 3.36231 8.29681 3.36328 9.40039 3.36328H14.5996C15.7032 3.36328 16.5914 3.36231 17.3086 3.4209C18.0373 3.48044 18.6773 3.60656 19.2695 3.9082L19.4443 4.00195C20.3052 4.48442 21.0057 5.21184 21.4551 6.09375L21.5605 6.31738C21.7877 6.84672 21.8903 7.41688 21.9424 8.05469C22.001 8.77186 22 9.66008 22 10.7637V13.2363ZM10 18.6357H14.5996C15.7361 18.6357 16.5287 18.6353 17.1455 18.585C17.7507 18.5355 18.0989 18.4594 18.3501 18.3511L18.4536 18.3027C18.9063 18.0703 19.284 17.7195 19.5557 17.2881L19.6729 17.0771C19.8071 16.8135 19.9001 16.4639 19.9492 15.8574C19.9996 15.2411 20 14.4479 20 13.3115V10.6885C20 9.55212 19.9996 8.75893 19.9492 8.14258C19.9001 7.53764 19.8071 7.18799 19.6729 6.9248L19.5557 6.71387C19.284 6.2825 18.9063 5.93164 18.4536 5.69922L18.3501 5.65137C18.0989 5.54297 17.7507 5.46729 17.1455 5.41797C16.5287 5.36768 15.7361 5.36719 14.5996 5.36719H10V18.6357Z" /></svg>
+                                </button>
+                        </div>
+
+                        <!-- Nav items -->
+                        <div class="flex-1 overflow-y-auto px-2 pb-4">
+                                <div class="mb-1">
+                                        <button
+                                                on:click={() => goto('/')}
+                                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-[#444444] hover:bg-[#e5e5e5]/40"
+                                                title="Home"
+                                        >
+                                                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 11.737c0-.728-.005-1.07-.038-1.298l-.044-.201a1.999 1.999 0 0 0-.238-.52l-.111-.155c-.12-.15-.276-.283-.681-.577l-.496-.354-3.7-2.612c-.933-.658-1.295-.898-1.585-1.002l-.12-.036a2 2 0 0 0-.853-.026l-.121.026c-.318.08-.64.287-1.704 1.038l-3.7 2.612c-.595.42-.871.621-1.039.78l-.138.151a2 2 0 0 0-.35.675c-.072.244-.082.528-.082 1.499v5.062l.003.727c.003.2.01.364.022.506.022.271.06.372.084.422l.083.133a1 1 0 0 0 .354.303l.049.022c.062.022.17.047.373.063.283.023.656.025 1.232.025h1.8v-3.25a3.5 3.5 0 1 1 7 0V19h1.8c.576 0 .949-.002 1.232-.025.272-.022.373-.06.422-.085l.134-.082a.998.998 0 0 0 .303-.354l.021-.05a1.47 1.47 0 0 0 .064-.372c.023-.284.024-.656.024-1.233v-5.062Zm2 5.062c0 .544.001 1.012-.03 1.396a3.22 3.22 0 0 1-.23 1.024l-.067.143a3 3 0 0 1-1.104 1.195l-.207.116c-.378.192-.771.264-1.167.296-.383.032-.852.03-1.395.03h-2.8a1 1 0 0 1-1-1v-4.25a1.5 1.5 0 0 0-3 0V20a1 1 0 0 1-1 1H6.7c-.543 0-1.012.002-1.395-.03a3.224 3.224 0 0 1-1.025-.23l-.142-.067a3 3 0 0 1-1.196-1.104l-.115-.206c-.192-.378-.264-.772-.297-1.167a9.947 9.947 0 0 1-.026-.638L2.5 16.8v-5.062c0-.85-.01-1.478.163-2.065.145-.49.383-.949.7-1.35l.149-.174c.363-.396.835-.72 1.443-1.15l3.7-2.612c.929-.655 1.604-1.152 2.372-1.344l.24-.052a4 4 0 0 1 1.707.052l.284.087c.656.233 1.275.684 2.087 1.257L19.045 7l.488.345c.457.33.82.618 1.104.978l.115.153a4 4 0 0 1 .585 1.197l.057.223c.114.525.106 1.098.106 1.842V16.8Z" /></svg>
+                                                <span class="transition-opacity duration-200 whitespace-nowrap overflow-hidden {sidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}">Home</span>
+                                        </button>
+                                </div>
+
+                                <div class="mt-4 mb-1">
+                                        {#if sidebarOpen}
+                                        <p class="px-3 mb-1 text-xs font-medium text-[#888888] transition-opacity duration-200">Create</p>
+                                        {/if}
+                                        <button
+                                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#444444] hover:bg-[#e5e5e5]/40 transition-colors"
+                                                title="Chat"
+                                        >
+                                                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7.5271 4.5 4 7.91095 4 12C4 13.6958 4.5996 15.263 5.62036 16.5254C5.80473 16.7534 5.87973 17.0509 5.82551 17.339C5.72928 17.8505 5.60336 18.3503 5.45668 18.8401C6.08722 18.743 6.69878 18.6098 7.2983 18.4395C7.54758 18.3687 7.81461 18.3975 8.04312 18.5197C9.20727 19.1423 10.5566 19.5 12 19.5C16.4729 19.5 20 16.0891 20 12C20 7.91095 16.4729 4.5 12 4.5ZM2 12C2 6.70021 6.53177 2.5 12 2.5C17.4682 2.5 22 6.70021 22 12C22 17.2998 17.4682 21.5 12 21.5C10.3694 21.5 8.82593 21.1286 7.46141 20.4675C6.36717 20.7507 5.2423 20.9253 4.06155 20.9981C3.72191 21.019 3.39493 20.8658 3.19366 20.5915C2.9924 20.3171 2.94448 19.9592 3.06647 19.6415C3.35663 18.8859 3.6004 18.1448 3.77047 17.399C2.65693 15.8695 2 14.0088 2 12Z" fill="currentColor" /></svg>
+                                                <span class="transition-opacity duration-200 whitespace-nowrap overflow-hidden {sidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}">Chat</span>
+                                        </button>
+                                </div>
+
+                                <div class="mt-4 mb-1">
+                                        {#if sidebarOpen}
+                                        <p class="px-3 mb-1 text-xs font-medium text-[#888888] transition-opacity duration-200">Manage</p>
+                                        {/if}
+                                        <button
+                                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#444444] hover:bg-[#e5e5e5]/40 transition-colors"
+                                                title="Usage"
+                                        >
+                                                <BarChart2 class="w-5 h-5 flex-shrink-0" strokeWidth={2} />
+                                                <span class="transition-opacity duration-200 whitespace-nowrap overflow-hidden {sidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}">Usage</span>
+                                        </button>
+                                        <button
+                                                on:click={() => goto('/')}
+                                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#444444] hover:bg-[#e5e5e5]/40 transition-colors"
+                                                title="API keys"
+                                        >
+                                                <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9.75C16.9665 9.75 17.75 8.9665 17.75 8C17.75 7.0335 16.9665 6.25 16 6.25C15.0335 6.25 14.25 7.0335 14.25 8C14.25 8.9665 15.0335 9.75 16 9.75Z" /><path d="M15 2C11.134 2 8 5.13401 8 9C8 9.49204 8.05092 9.97307 8.14801 10.4378L3.73223 14.8536C3.26339 15.3224 3 15.9583 3 16.6213V20C3 20.5523 3.44772 21 4 21H7.37868C8.04172 21 8.6776 20.7366 9.14645 20.2678L10.2071 19.2071C10.3946 19.0196 10.5 18.7652 10.5 18.5V17.5H11.5C11.7652 17.5 12.0196 17.3946 12.2071 17.2071L13.5622 15.852C14.0269 15.9491 14.508 16 15 16C18.866 16 22 12.866 22 9C22 5.13401 18.866 2 15 2ZM10 9C10 6.23858 12.2386 4 15 4C17.7614 4 20 6.23858 20 9C20 11.7614 17.7614 14 15 14C14.4932 14 14.0057 13.9249 13.5471 13.7859C13.1941 13.6789 12.8108 13.775 12.55 14.0358L11.0858 15.5H9.5C8.94772 15.5 8.5 15.9477 8.5 16.5V18.0858L7.73223 18.8536C7.63847 18.9473 7.51129 19 7.37868 19H5V16.6213C5 16.4887 5.05268 16.3615 5.14645 16.2678L9.96418 11.45C10.225 11.1892 10.3211 10.8059 10.2141 10.4529C10.0751 9.99431 10 9.50683 10 9Z" /></svg>
+                                                <span class="transition-opacity duration-200 whitespace-nowrap overflow-hidden {sidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}">API keys</span>
+                                        </button>
+                                </div>
+                        </div>
+                </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col h-full bg-[#f9f9f9] overflow-x-hidden min-w-0">
+
+                <!-- Header -->
+                <header class="h-[60px] flex-shrink-0 sticky top-0 z-[200] flex items-center justify-between px-4 bg-[#f9f9f9]">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
+                                <!-- Mobile sidebar toggle -->
+                                <button
+                                        on:click={() => sidebarOpen = !sidebarOpen}
+                                        class="lg:hidden flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg text-[#666666] hover:bg-[#e5e5e5]/60 transition-colors"
+                                >
+                                        <svg class="w-7 h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M3 8C3 7.44772 3.44772 7 4 7H20C20.5523 7 21 7.44772 21 8C21 8.55228 20.5523 9 20 9H4C3.44772 9 3 8.55228 3 8ZM3 16C3 15.4477 3.44772 15 4 15H14C14.5523 15 15 15.4477 15 16C15 16.5523 14.5523 17 14 17H4C3.44772 17 3 16.5523 3 16Z" fill="currentColor" /></svg>
+                                </button>
+                                <div class="hidden sm:flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
+                                        <div class="w-5 h-5 bg-[#202124] text-white rounded flex items-center justify-center text-[11px] font-medium">
+                                                U
+                                        </div>
+                                        <span class="text-sm font-medium">api</span>
+                                        <ChevronDown class="w-4 h-4 text-[#888888]" strokeWidth={2} />
+                                </div>
+                                <span class="hidden sm:block text-[#d2d2d2]">/</span>
+                                <div class="hidden sm:flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md transition-colors">
+                                        <span class="text-sm font-medium">Default project</span>
+                                        <ChevronDown class="w-4 h-4 text-[#888888]" strokeWidth={2} />
+                                </div>
+                        </div>
+                        <div class="flex items-center gap-3 sm:gap-6">
+                                <nav class="hidden sm:flex items-center gap-6">
+                                        <a href="/" class="text-sm text-[#666666] hover:text-[#0f0f0f] transition-colors">Dashboard</a>
+                                        <button class="text-sm font-medium text-[#0f0f0f]">API Docs</button>
+                                </nav>
+                                <div class="flex items-center gap-3 sm:gap-4 sm:ml-2">
+                                        <button class="text-[#666666] hover:text-[#0f0f0f] transition-colors">
+                                                <Settings class="w-5 h-5" strokeWidth={2} />
+                                        </button>
+                                        <div class="w-7 h-7 rounded-full border border-[#e5e5e5] flex items-center justify-center text-xs font-medium text-[#444444]">
+                                                U
+                                        </div>
+                                </div>
+                        </div>
+                </header>
+
+                <!-- Scrollable Content -->
+                <div class="flex-1 overflow-y-auto bg-white rounded-tl-[1.5rem] rounded-tr-[1.5rem] sm:rounded-tr-none sm:rounded-tl-[3rem]">
+                        <div class="flex max-w-[1200px] mx-auto w-full min-w-0">
+
+                                <!-- Reference sidebar nav — desktop -->
+                                <nav class="hidden md:flex flex-col gap-0.5 w-52 flex-shrink-0 sticky top-0 h-screen pt-8 pb-8 pl-6 pr-4 overflow-y-auto">
+                                        <p class="text-[11px] font-semibold text-[#aaaaaa] uppercase tracking-wider mb-3 px-2">Reference</p>
+                                        {#each nav as item}
+                                                <button
+                                                        on:click={() => scrollTo(item.id)}
+                                                        class="text-left px-2 py-1.5 rounded-lg text-sm transition-colors {activeSection === item.id ? 'bg-[#f4f4f4] text-[#0f0f0f] font-medium' : 'text-[#666666] hover:text-[#0f0f0f] hover:bg-[#f9f9f9]'}"
+                                                >{item.label}</button>
+                                        {/each}
+                                </nav>
+
+                                <!-- Doc content -->
+                                <main class="flex-1 min-w-0 px-6 md:px-10 py-10 space-y-16">
+
+                                        <!-- Mobile reference nav toggle -->
+                                        <div class="md:hidden -mt-4 mb-4">
+                                                <button
+                                                        on:click={() => refNavOpen = !refNavOpen}
+                                                        class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-[#e5e5e5] bg-[#f9f9f9] text-sm text-[#444444] hover:bg-[#f4f4f4] transition-colors"
+                                                >
+                                                        <span class="font-medium">{nav.find(n => n.id === activeSection)?.label ?? 'Reference'}</span>
+                                                        <svg class="w-4 h-4 text-[#888888] transition-transform duration-200 {refNavOpen ? 'rotate-180' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                                                </button>
+                                                {#if refNavOpen}
+                                                <div class="mt-1 rounded-xl border border-[#e5e5e5] bg-white overflow-hidden">
+                                                        {#each nav as item}
+                                                                <button
+                                                                        on:click={() => scrollTo(item.id)}
+                                                                        class="w-full text-left px-4 py-2.5 text-sm transition-colors border-b border-[#f0f0f0] last:border-0 {activeSection === item.id ? 'bg-[#f4f4f4] text-[#0f0f0f] font-medium' : 'text-[#666666] hover:bg-[#f9f9f9]'}"
+                                                                >{item.label}</button>
+                                                        {/each}
+                                                </div>
+                                                {/if}
+                                        </div>
+
+                                        <section id="introduction">
+                                                <div class="inline-flex items-center px-3 py-1 rounded-full bg-[#f4f4f4] text-xs text-[#666666] font-medium mb-4">OpenAI-compatible</div>
+                                                <h1 class="text-3xl font-bold tracking-tight text-[#0f0f0f] mb-4">API Documentation</h1>
+                                                <p class="text-[16px] text-[#555555] leading-relaxed max-w-[640px] mb-6">
+                                                        A unified, OpenAI-compatible gateway giving you access to the best open and proprietary AI models through a single endpoint. Drop it in anywhere you already use the OpenAI SDK — no code changes needed.
+                                                </p>
+                                                <button
+                                                        on:click={copyBaseUrl}
+                                                        class="w-full text-left bg-[#f9f9f9] border border-[#e5e5e5] rounded-2xl p-5 hover:bg-[#f4f4f4] transition-colors group"
+                                                >
+                                                        <div class="flex items-center justify-between mb-2">
+                                                                <p class="text-xs font-semibold text-[#888888] uppercase tracking-wider">Base URL</p>
+                                                                <span class="text-xs text-[#aaaaaa] group-hover:text-[#666666] transition-colors">
+                                                                        {copied ? '✓ Skopiowano' : 'Kliknij aby skopiować'}
+                                                                </span>
+                                                        </div>
+                                                        <code class="text-[15px] font-mono text-[#0f0f0f]">{baseUrl || 'Loading…'}</code>
+                                                </button>
+                                        </section>
+
+                                        <section id="authentication">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Authentication</h2>
+                                                <p class="text-sm text-[#888888] mb-5">Pass your API key in every request using the <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">Authorization</code> header.</p>
+                                                <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden mb-5">
+                                                        <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                <span class="text-xs font-medium text-[#888888]">HTTP header</span>
+                                                        </div>
+                                                        <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>Authorization: Bearer sk-&lt;your-api-key&gt;</code></pre>
+                                                </div>
+                                                <p class="text-sm text-[#666666] mb-4">Alternatively pass <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">x-api-key</code> as a header.</p>
+                                                <div class="flex gap-2 items-start p-4 rounded-xl border border-amber-200 bg-amber-50">
+                                                        <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                                        <p class="text-sm text-amber-800">Keep your API keys secret. Do not share them or expose them in client-side code.</p>
+                                                </div>
+                                        </section>
+
+                                        <section id="models">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Available models</h2>
+                                                <p class="text-sm text-[#888888] mb-5">Use the short alias or the full model ID in the <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">model</code> field. Both are accepted.</p>
+                                                <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden mb-5">
+                                                        <table class="w-full text-sm">
+                                                                <thead>
+                                                                        <tr class="bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                                <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">Alias</th>
+                                                                                <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider hidden sm:table-cell">Full model ID</th>
+                                                                                <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider hidden md:table-cell">Note</th>
+                                                                        </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                        {#each models as m, i}
+                                                                                <tr class="{i < models.length - 1 ? 'border-b border-[#f0f0f0]' : ''}">
+                                                                                        <td class="px-4 py-3 font-mono text-[13px] font-medium text-[#0f0f0f] whitespace-nowrap">{m.alias}</td>
+                                                                                        <td class="px-4 py-3 font-mono text-[12px] text-[#666666] hidden sm:table-cell">{m.id}</td>
+                                                                                        <td class="px-4 py-3 text-[13px] text-[#888888] hidden md:table-cell">{m.note}</td>
+                                                                                </tr>
+                                                                        {/each}
+                                                                </tbody>
+                                                        </table>
+                                                </div>
+                                                <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                        <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                <span class="text-xs font-medium text-[#888888]">List all models — cURL</span>
+                                                        </div>
+                                                        <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.curlModels}</code></pre>
+                                                </div>
+                                        </section>
+
+                                        <section id="chat-completions">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Chat Completions</h2>
+                                                <p class="text-sm text-[#888888] mb-5">Fully compatible with the OpenAI Chat Completions API. Use any existing OpenAI client by changing only the <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">base_url</code>.</p>
+                                                <div class="space-y-4">
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <div class="flex items-center gap-2 px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                        <span class="text-xs font-mono font-semibold text-[#22c55e]">POST</span>
+                                                                        <code class="text-xs text-[#444444]">/v1/chat/completions — cURL</code>
+                                                                </div>
+                                                                <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.curlChat}</code></pre>
+                                                        </div>
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                        <span class="text-xs font-medium text-[#888888]">Python — openai SDK</span>
+                                                                </div>
+                                                                <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.python}</code></pre>
+                                                        </div>
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                        <span class="text-xs font-medium text-[#888888]">JavaScript / TypeScript — openai SDK</span>
+                                                                </div>
+                                                                <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.js}</code></pre>
+                                                        </div>
+                                                </div>
+                                                <div class="mt-6">
+                                                        <h3 class="text-base font-semibold text-[#0f0f0f] mb-3">Request body</h3>
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <table class="w-full text-sm">
+                                                                        <thead>
+                                                                                <tr class="bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                                        <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">Parameter</th>
+                                                                                        <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">Type</th>
+                                                                                        <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider hidden sm:table-cell">Description</th>
+                                                                                </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                                {#each params as p, i}
+                                                                                        <tr class="{i < params.length - 1 ? 'border-b border-[#f0f0f0]' : ''}">
+                                                                                                <td class="px-4 py-3 font-mono text-[13px] text-[#0f0f0f]">
+                                                                                                        {p.name}
+                                                                                                        {#if p.req}<span class="ml-1.5 text-[10px] font-sans font-semibold text-red-500 uppercase">req</span>{/if}
+                                                                                                </td>
+                                                                                                <td class="px-4 py-3 font-mono text-[12px] text-[#888888]">{p.type}</td>
+                                                                                                <td class="px-4 py-3 text-[13px] text-[#666666] hidden sm:table-cell">{p.desc}</td>
+                                                                                        </tr>
+                                                                                {/each}
+                                                                        </tbody>
+                                                                </table>
+                                                        </div>
+                                                </div>
+                                        </section>
+
+                                        <section id="streaming">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Streaming</h2>
+                                                <p class="text-sm text-[#888888] mb-5">By default all responses are streamed using Server-Sent Events. Set <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">stream: false</code> to receive a single JSON response.</p>
+                                                <div class="space-y-4">
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                        <span class="text-xs font-medium text-[#888888]">Python — streaming</span>
+                                                                </div>
+                                                                <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.streamPython}</code></pre>
+                                                        </div>
+                                                        <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                                <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                        <span class="text-xs font-medium text-[#888888]">SSE format (raw)</span>
+                                                                </div>
+                                                                <pre class="p-4 text-sm font-mono text-[#666666] overflow-x-auto"><code>{@html s.sseRaw}</code></pre>
+                                                        </div>
+                                                </div>
+                                        </section>
+
+                                        <section id="tool-calls">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Tool calls</h2>
+                                                <p class="text-sm text-[#888888] mb-5">
+                                                        Pass <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">tools</code> in the standard OpenAI format. The gateway also supports an <strong>agentic loop</strong> — add an <code class="font-mono bg-[#f4f4f4] px-1.5 py-0.5 rounded text-[13px]">x-endpoint</code> field to a tool definition and the API will automatically execute the tool, send results back to the model, and repeat until a final answer is produced (up to 10 iterations).
+                                                </p>
+                                                <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                        <div class="flex items-center px-4 py-2.5 bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                <span class="text-xs font-medium text-[#888888]">Auto-execute tool via x-endpoint — cURL</span>
+                                                        </div>
+                                                        <pre class="p-4 text-sm font-mono text-[#0f0f0f] overflow-x-auto"><code>{@html s.toolCurl}</code></pre>
+                                                </div>
+                                        </section>
+
+                                        <section id="errors">
+                                                <h2 class="text-xl font-semibold text-[#0f0f0f] mb-1">Errors</h2>
+                                                <p class="text-sm text-[#888888] mb-5">Standard HTTP status codes are used.</p>
+                                                <div class="rounded-2xl border border-[#e5e5e5] overflow-hidden">
+                                                        <table class="w-full text-sm">
+                                                                <thead>
+                                                                        <tr class="bg-[#f9f9f9] border-b border-[#e5e5e5]">
+                                                                                <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">Status</th>
+                                                                                <th class="text-left px-4 py-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">Meaning</th>
+                                                                        </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                        {#each errors as e, i}
+                                                                                <tr class="{i < errors.length - 1 ? 'border-b border-[#f0f0f0]' : ''}">
+                                                                                        <td class="px-4 py-3">
+                                                                                                <span class="font-mono text-[13px] font-semibold {e.color}">{e.code}</span>
+                                                                                                <span class="ml-2 text-[13px] text-[#444444]">{e.label}</span>
+                                                                                        </td>
+                                                                                        <td class="px-4 py-3 text-[13px] text-[#666666]">{e.desc}</td>
+                                                                                </tr>
+                                                                        {/each}
+                                                                </tbody>
+                                                        </table>
+                                                </div>
+                                        </section>
+
+                                </main>
+                        </div>
+                </div>
+        </div>
+</div>
