@@ -1,12 +1,22 @@
 services:
   - type: web
-    name: sveltekit-console
+    name: ai-gateway
     runtime: docker
     dockerfilePath: console/Dockerfile
     dockerContext: console
-    port: 7860
+    port: 8080
     envVars:
       - key: PORT
-        value: 7860
-      - key: SVELTE_PORT
+        value: 8080
+
+  - type: web
+    name: ai-console
+    runtime: docker
+    dockerfilePath: console/console/Dockerfile
+    dockerContext: console/console
+    port: 3000
+    envVars:
+      - key: PORT
         value: 3000
+      - key: VITE_GATEWAY_URL
+        sync: false
