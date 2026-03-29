@@ -8,8 +8,6 @@ import (
         "io"
         "log"
         "net/http"
-        "net/http/httputil"
-        "net/url"
         "os"
         "sort"
         "strings"
@@ -489,55 +487,22 @@ func handleModels(w http.ResponseWriter, r *http.Request) {
         json.NewEncoder(w).Encode(map[string]interface{}{"object": "list", "data": data})
 }
 
-func detectBaseURL(r *http.Request) string {
-        host := r.Header.Get("X-Forwarded-Host")
-        if host == "" {
-                host = r.Host
-        }
-        // strip port
-        if h, _, found := strings.Cut(host, ":"); found {
-                host = h
-        }
-        if !strings.HasPrefix(host, "api.") {
-                host = "api." + host
-        }
-        return "https://" + host + "/v1"
-}
-
-func handleRoot(w http.ResponseWriter, r *http.Request) {
-        setCORSHeaders(w, r)
-        if r.Method == http.MethodOptions {
-                w.WriteHeader(http.StatusNoContent)
-                return
-        }
-        w.Header().Set("Content-Type", "application/json")
-        json.NewEncoder(w).Encode(map[string]string{
-                "base_url": detectBaseURL(r),
-        })
-}
-
 func main() {
         port := os.Getenv("PORT")
         if port == "" {
-                port = "7860"
+                port = "8080"
         }
-        sveltePort := os.Getenv("SVELTE_PORT")
-        if sveltePort == "" {
-                sveltePort = "3000"
-        }
-
-        svelteTarget, _ := url.Parse("http://localhost:" + sveltePort)
-        svelteProxy := httputil.NewSingleHostReverseProxy(svelteTarget)
 
         mux := http.NewServeMux()
         mux.HandleFunc("/v1/chat/completions", handleChat)
         mux.HandleFunc("/v1/models", handleModels)
         mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-                if strings.HasPrefix(r.URL.Path, "/v1/") {
-                        handleRoot(w, r)
+                setCORSHeaders(w, r)
+                if r.Method == http.MethodOptions {
+                        w.WriteHeader(http.StatusNoContent)
                         return
                 }
-                svelteProxy.ServeHTTP(w, r)
+                http.NotFound(w, r)
         })
 
         go func() {
@@ -546,7 +511,7 @@ func main() {
                         time.Sleep(60 * time.Second)
                 }
         }()
-        log.Printf("API Gateway running on :%s, proxying UI to SvelteKit :%s", port, sveltePort)
+        log.Printf("API Gateway running on :%s", port)
         if err := http.ListenAndServe(":"+port, mux); err != nil {
                 log.Fatalf("Server error: %v", err)
         }
