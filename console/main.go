@@ -45,6 +45,7 @@ var novaModels = map[string]bool{
 // Modele z wyłączonym thinking
 var noThinkingModels = map[string]bool{
         "deepseek-ai/deepseek-v3.1": true,
+        "z-ai/glm4.7":               true,
 }
 
 func getProviderConfig(modelID string) (baseURL, apiKey string) {
