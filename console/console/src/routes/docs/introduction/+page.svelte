@@ -77,7 +77,6 @@
                                 {#each [
                                         { method: 'GET',  path: '/v1/models',           desc: 'List all available models' },
                                         { method: 'POST', path: '/v1/chat/completions', desc: 'Create a chat completion' },
-                                        { method: 'GET',  path: '/',                    desc: 'Detect the gateway base URL' },
                                 ] as e}
                                         <tr class="hover:bg-[#fafafa] transition-colors">
                                                 <td class="px-4 py-3">
