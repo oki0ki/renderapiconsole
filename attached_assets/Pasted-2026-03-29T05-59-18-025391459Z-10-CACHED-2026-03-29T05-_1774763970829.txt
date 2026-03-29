@@ -1,0 +1,50 @@
+2026-03-29T05:59:18.025391459Z #10 CACHED
+2026-03-29T05:59:18.02539429Z 
+2026-03-29T05:59:18.02539728Z #11 [svelte-build 4/6] RUN npm install
+2026-03-29T05:59:18.02539933Z #11 CACHED
+2026-03-29T05:59:18.02540122Z 
+2026-03-29T05:59:18.02540414Z #12 [stage-2 4/8] COPY --from=svelte-build /app/node_modules ./svelte/node_modules
+2026-03-29T05:59:18.02540611Z #12 CACHED
+2026-03-29T05:59:18.02540798Z 
+2026-03-29T05:59:18.025410531Z #13 [stage-2 3/8] COPY --from=svelte-build /app/build ./svelte/build
+2026-03-29T05:59:18.025412501Z #13 CACHED
+2026-03-29T05:59:18.025414361Z 
+2026-03-29T05:59:18.025416881Z #14 [go-build 3/4] COPY console/*.go console/go.mod ./
+2026-03-29T05:59:18.025418861Z #14 CACHED
+2026-03-29T05:59:18.025420681Z 
+2026-03-29T05:59:18.025422601Z #15 [svelte-build 3/6] COPY console/console/package*.json ./
+2026-03-29T05:59:18.025424541Z #15 CACHED
+2026-03-29T05:59:18.025426332Z 
+2026-03-29T05:59:18.025428272Z #16 [stage-2 5/8] COPY --from=svelte-build /app/package.json ./svelte/package.json
+2026-03-29T05:59:18.025430142Z #16 CACHED
+2026-03-29T05:59:18.025431922Z 
+2026-03-29T05:59:18.025433922Z #17 [svelte-build 5/6] COPY console/console/ ./
+2026-03-29T05:59:18.025436192Z #17 CACHED
+2026-03-29T05:59:18.025437982Z 
+2026-03-29T05:59:18.025439972Z #18 [go-build 2/4] WORKDIR /app
+2026-03-29T05:59:18.025441882Z #18 CACHED
+2026-03-29T05:59:18.025443683Z 
+2026-03-29T05:59:18.025445613Z #19 [svelte-build 2/6] WORKDIR /app
+2026-03-29T05:59:18.025459704Z #19 CACHED
+2026-03-29T05:59:18.025463064Z 
+2026-03-29T05:59:18.025476675Z #20 [stage-2 6/8] COPY --from=go-build /app/gateway ./gateway
+2026-03-29T05:59:18.025480145Z #20 CACHED
+2026-03-29T05:59:18.025482135Z 
+2026-03-29T05:59:18.025484115Z #21 [stage-2 7/8] COPY console/start.sh /start.sh
+2026-03-29T05:59:18.025486635Z #21 ERROR: failed to calculate checksum of ref rdlqkazz5io0tr9mxs0j6i84a::lnooiqfu9l3zml58jpi7flvf6: "/console/start.sh": not found
+2026-03-29T05:59:18.025488505Z 
+2026-03-29T05:59:18.025490425Z #22 [svelte-build 1/6] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+2026-03-29T05:59:18.025493036Z #22 resolve docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c 0.0s done
+2026-03-29T05:59:18.025494976Z #22 DONE 0.1s
+2026-03-29T05:59:18.025496996Z ------
+2026-03-29T05:59:18.025498966Z  > [stage-2 7/8] COPY console/start.sh /start.sh:
+2026-03-29T05:59:18.025500966Z ------
+2026-03-29T05:59:18.027196954Z Dockerfile:19
+2026-03-29T05:59:18.027207274Z --------------------
+2026-03-29T05:59:18.027210474Z   17 |     COPY --from=svelte-build /app/package.json ./svelte/package.json
+2026-03-29T05:59:18.027213125Z   18 |     COPY --from=go-build /app/gateway ./gateway
+2026-03-29T05:59:18.027215635Z   19 | >>> COPY console/start.sh /start.sh
+2026-03-29T05:59:18.027217995Z   20 |     RUN chmod +x /start.sh
+2026-03-29T05:59:18.027220285Z   21 |     EXPOSE 10000
+2026-03-29T05:59:18.027222505Z --------------------
+2026-03-29T05:59:18.027225606Z error: failed to solve: failed to compute cache key: failed to calculate checksum of ref rdlqkazz5io0tr9mxs0j6i84a::lnooiqfu9l3zml58jpi7flvf6: "/console/start.sh": not found
