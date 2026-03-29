@@ -7,11 +7,16 @@
         let mobileOpen = false;
 
         onMount(() => {
-                const host = window.location.hostname;
-                if (host === 'localhost' || host === '127.0.0.1') {
-                        baseUrl.set('http://localhost:3001/v1');
+                const configured = import.meta.env.VITE_GATEWAY_URL;
+                if (configured) {
+                        baseUrl.set(configured.replace(/\/$/, '') + '/v1');
                 } else {
-                        baseUrl.set('https://' + host + '/v1');
+                        const host = window.location.hostname;
+                        if (host === 'localhost' || host === '127.0.0.1') {
+                                baseUrl.set('http://localhost:3001/v1');
+                        } else {
+                                baseUrl.set('https://ai-gateway.onrender.com/v1');
+                        }
                 }
         });
 
