@@ -1,21 +1,10 @@
-FROM node:20-alpine AS svelte-build
-WORKDIR /app
-COPY console/package*.json ./
-RUN npm ci
-COPY console/ ./
-RUN npm run build
-
-FROM golang:1.22-alpine AS go-build
+FROM golang:1.22-alpine AS build
 WORKDIR /app
 COPY *.go go.mod ./
 RUN go build -o gateway .
 
-FROM node:20-alpine
+FROM alpine:latest
 WORKDIR /app
-COPY --from=svelte-build /app/build ./svelte
-COPY --from=svelte-build /app/package.json ./svelte/
-COPY --from=go-build /app/gateway ./gateway
-COPY start.sh ./start.sh
-RUN chmod +x ./start.sh
-EXPOSE 7860
-CMD ["./start.sh"]
+COPY --from=build /app/gateway ./gateway
+EXPOSE 8080
+CMD ["./gateway"]
