@@ -5,7 +5,15 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		prerender: {
+			handleHttpError: ({ path, referrer, message }) => {
+				if (path === '/favicon.png' || path.endsWith('.png') || path.endsWith('.ico')) {
+					return;
+				}
+				throw new Error(message);
+			}
+		}
 	}
 };
 
