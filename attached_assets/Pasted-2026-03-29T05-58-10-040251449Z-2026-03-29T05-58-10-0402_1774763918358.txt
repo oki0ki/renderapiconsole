@@ -1,0 +1,50 @@
+2026-03-29T05:58:10.040251449Z 
+2026-03-29T05:58:10.040254739Z #14 [go-build 2/4] WORKDIR /app
+2026-03-29T05:58:10.040257969Z #14 CACHED
+2026-03-29T05:58:10.040261039Z 
+2026-03-29T05:58:10.040264019Z #15 [svelte-build 2/6] WORKDIR /app
+2026-03-29T05:58:10.04026725Z #15 CACHED
+2026-03-29T05:58:10.04027021Z 
+2026-03-29T05:58:10.04027312Z #16 [stage-2 4/8] COPY --from=svelte-build /app/node_modules ./svelte/node_modules
+2026-03-29T05:58:10.04027602Z #16 CACHED
+2026-03-29T05:58:10.04027886Z 
+2026-03-29T05:58:10.0402821Z #17 [svelte-build 4/6] RUN npm install
+2026-03-29T05:58:10.04028532Z #17 CACHED
+2026-03-29T05:58:10.040294781Z 
+2026-03-29T05:58:10.040297551Z #18 [stage-2 3/8] COPY --from=svelte-build /app/build ./svelte/build
+2026-03-29T05:58:10.040299681Z #18 CACHED
+2026-03-29T05:58:10.040301531Z 
+2026-03-29T05:58:10.040303501Z #19 [stage-2 7/8] COPY console/start.sh /start.sh
+2026-03-29T05:58:10.040306252Z #19 ERROR: failed to calculate checksum of ref wexwjuound02tlx6gn3xm7624::mwwv13w28ke853znp2q3oxhiu: "/console/start.sh": not found
+2026-03-29T05:58:10.040317632Z 
+2026-03-29T05:58:10.040319882Z #20 [svelte-build 5/6] COPY console/console/ ./
+2026-03-29T05:58:10.040321982Z #20 ERROR: failed to calculate checksum of ref wexwjuound02tlx6gn3xm7624::mwwv13w28ke853znp2q3oxhiu: "/console/console": not found
+2026-03-29T05:58:10.040323873Z 
+2026-03-29T05:58:10.040325873Z #21 [go-build 1/4] FROM docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052
+2026-03-29T05:58:10.040327933Z #21 resolve docker.io/library/golang:1.22-alpine@sha256:1699c10032ca2582ec89a24a1312d986a3f094aed3d5c1147b19880afe40e052 0.0s done
+2026-03-29T05:58:10.196031045Z #21 DONE 0.2s
+2026-03-29T05:58:10.196051566Z 
+2026-03-29T05:58:10.196055827Z #11 [go-build 3/4] COPY console/*.go console/go.mod ./
+2026-03-29T05:58:10.196059647Z #11 ERROR: failed to calculate checksum of ref wexwjuound02tlx6gn3xm7624::mwwv13w28ke853znp2q3oxhiu: "/console/go.mod": not found
+2026-03-29T05:58:10.196062457Z 
+2026-03-29T05:58:10.196065677Z #22 [svelte-build 1/6] FROM docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c
+2026-03-29T05:58:10.196068927Z #22 resolve docker.io/library/node:20-alpine@sha256:f598378b5240225e6beab68fa9f356db1fb8efe55173e6d4d8153113bb8f333c 0.0s done
+2026-03-29T05:58:10.196071758Z #22 DONE 0.2s
+2026-03-29T05:58:10.196074558Z ------
+2026-03-29T05:58:10.196077848Z  > [svelte-build 5/6] COPY console/console/ ./:
+2026-03-29T05:58:10.196080708Z ------
+2026-03-29T05:58:10.196083728Z ------
+2026-03-29T05:58:10.196086568Z  > [go-build 3/4] COPY console/*.go console/go.mod ./:
+2026-03-29T05:58:10.196089448Z ------
+2026-03-29T05:58:10.196092179Z ------
+2026-03-29T05:58:10.196094949Z  > [stage-2 7/8] COPY console/start.sh /start.sh:
+2026-03-29T05:58:10.196097689Z ------
+2026-03-29T05:58:10.197758626Z Dockerfile:19
+2026-03-29T05:58:10.197771947Z --------------------
+2026-03-29T05:58:10.197775227Z   17 |     COPY --from=svelte-build /app/package.json ./svelte/package.json
+2026-03-29T05:58:10.197777987Z   18 |     COPY --from=go-build /app/gateway ./gateway
+2026-03-29T05:58:10.197780667Z   19 | >>> COPY console/start.sh /start.sh
+2026-03-29T05:58:10.197782667Z   20 |     RUN chmod +x /start.sh
+2026-03-29T05:58:10.197784787Z   21 |     EXPOSE 10000
+2026-03-29T05:58:10.197786847Z --------------------
+2026-03-29T05:58:10.197789688Z error: failed to solve: failed to compute cache key: failed to calculate checksum of ref wexwjuound02tlx6gn3xm7624::mwwv13w28ke853znp2q3oxhiu: "/console/start.sh": not found
